@@ -53,7 +53,7 @@ BOOL SetPrivilege(LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)
 	//LookupPrivilegeValue函数查看系统权限的特权值，返回信息到一个LUID结构体里。
 	if (!(LookupPrivilegeValue(NULL,  //第一个参数表示所要查看的系统，本地系统直接用NULL
 		lpszPrivilege,			//第二个参数指定特权的名称
-		&luid)))	//第三个参数用来接收所返回的制定特权名称的信息。
+		&luid)))	//第三个参数用来接收所返回的指定特权名称的信息。
 	{
 		_tprintf(L"LookupPrivilegeValue Error: %u\n", GetLastError());
 		return FALSE;
@@ -129,4 +129,39 @@ BOOL EjectDll(DWORD dwPID, LPCTSTR szDllName)
 		me.modBaseAddr,
 		0,
 		NULL);
+	WaitForSingleObject(hThread, INFINITE); //等待CreateRemoteThread函数执行完毕，否则将一直等待
+	CloseHandle(hThread);
+	CloseHandle(hProcess);
+	CloseHandle(hSnapshot);
+
+	return TRUE;
 }
+
+int _tmain(int argc, TCHAR* argv[])
+{
+	DWORD dwPID = 0xFFFFFFFF;
+
+	//获取进程ID
+	dwPID = FindProcessID(DEF_PROC_NAME);
+	if (dwPID == 0xFFFFFFF)
+	{
+		_tprintf(L"There is no %s process!\n", DEF_PROC_NAME);
+		return 1;
+	}
+
+	_tprintf(L"PID of \"%s\" is %d\n", DEF_PROC_NAME, TRUE);
+
+	//更改privilege
+	if (!SetPrivilege(SE_DEBUG_NAME, TRUE))
+		return 1;
+
+
+	//卸载Dll
+	if (EjectDll(dwPID, DEF_PROC_NAME))
+		_tprintf(L"EjectDll(%d,\"%s\") success!!!\n", dwPID, DEF_DLL_NAME);
+	else
+		_tprintf(L"EjectDll(%d,\"%s\") failed!!!\n", dwPID, DEF_DLL_NAME);
+
+	return 0;
+}
+
